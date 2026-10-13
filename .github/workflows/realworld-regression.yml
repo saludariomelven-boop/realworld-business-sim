@@ -1,3 +1,4 @@
+
 name: REALWORLD Regression Tests
 
 on:
@@ -28,17 +29,19 @@ jobs:
           node-version: 22
           package-manager-cache: false
 
-      - name: Run Layer 8.1 auth, assistant, and loader tests
-        run: node --test loader.test.cjs layer7.test.cjs
+      - name: Run Layer 7/8.1 and Layer 8.2 assistant and loader tests
+        run: node --test loader.test.cjs layer7.test.cjs layer8.2.test.cjs
 
       - name: Run existing business-engine regressions against the pinned Layer 6.0 source
         shell: bash
         run: |
           set -euo pipefail
-          cp index.html /tmp/realworld-layer8-1-loader.html
+          cp index.html /tmp/realworld-layer8-2-loader.html
+
           restore_loader() {
-            cp /tmp/realworld-layer8-1-loader.html index.html
+            cp /tmp/realworld-layer8-2-loader.html index.html
           }
+
           trap restore_loader EXIT
 
           curl --fail --silent --show-error --location \
@@ -53,5 +56,8 @@ jobs:
       - name: Verify JavaScript syntax
         run: |
           node --check layer7.js
+          node --check layer8.2.js
           node --check layer7.test.cjs
+          node --check layer8.2.test.cjs
           node --check loader.test.cjs
+          
