@@ -1,66 +1,67 @@
 name: REALWORLD Regression Tests
 
 on:
-push:
-branches: [main]
-pull_request:
-branches: [main]
-workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
-contents: read
+  contents: read
 
 jobs:
-regression:
-name: Run REALWORLD regression tests
-runs-on: ubuntu-24.04
-timeout-minutes: 8
+  regression:
+    name: Run REALWORLD regression tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
 
-steps:
-  - name: Check out repository history
-    uses: actions/checkout@v5
-    with:
-      fetch-depth: 0
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-  - name: Set up Node.js
-    uses: actions/setup-node@v5
-    with:
-      node-version: 22
-      package-manager-cache: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
 
-  - name: Run assistant, Secretary, loader, and Layer 9 tests
-    run: node --test loader.test.cjs layer7.test.cjs layer8.2.test.cjs layer8.3.test.cjs layer9.test.cjs
+      - name: Run assistant, Secretary, loader, and Layer 9 tests
+        run: node --test loader.test.cjs layer7.test.cjs layer8.2.test.cjs layer8.3.test.cjs layer9.test.cjs
 
-  - name: Run existing business-engine regressions against pinned Layer 6.0 source
-    shell: bash
-    run: |
-      set -euo pipefail
+      - name: Run existing business-engine regressions against pinned Layer 6.0 source
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      cp index.html /tmp/realworld-loader-backup.html
+          cp index.html /tmp/realworld-loader-backup.html
 
-      restore_loader() {
-        cp /tmp/realworld-loader-backup.html index.html
-      }
+          restore_loader() {
+            cp /tmp/realworld-loader-backup.html index.html
+          }
 
-      trap restore_loader EXIT
+          trap restore_loader EXIT
 
-      curl --fail --silent --show-error --location \
-        https://raw.githubusercontent.com/saludariomelven-boop/realworld-business-sim/cca64607926733ee0d1130138606b2753a67dd99/index.html \
-        --output index.html
+          curl --fail --silent --show-error --location \
+            https://raw.githubusercontent.com/saludariomelven-boop/realworld-business-sim/cca64607926733ee0d1130138606b2753a67dd99/index.html \
+            --output index.html
 
-      node --test regression.test.cjs
+          node --test regression.test.cjs
 
-      restore_loader
-      trap - EXIT
+          restore_loader
+          trap - EXIT
 
-  - name: Verify JavaScript syntax
-    run: |
-      node --check layer7.js
-      node --check layer8.2.js
-      node --check layer8.3.js
-      node --check layer9.js
-      node --check loader.test.cjs
-      node --check layer7.test.cjs
-      node --check layer8.2.test.cjs
-      node --check layer8.3.test.cjs
-      node --check layer9.test.cjs
+      - name: Verify JavaScript syntax
+        run: |
+          node --check layer7.js
+          node --check layer8.2.js
+          node --check layer8.3.js
+          node --check layer9.js
+          node --check loader.test.cjs
+          node --check layer7.test.cjs
+          node --check layer8.2.test.cjs
+          node --check layer8.3.test.cjs
+          node --check layer9.test.cjs
+         
