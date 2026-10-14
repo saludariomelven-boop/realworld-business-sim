@@ -1,12 +1,12 @@
 /*
- * REALWORLD Layer 8.3 — Free Business Secretary Foundation
- * Additive read-only company tools, per-company local notes, and opt-in on-device AI.
- * Does not alter the Layer 6 business engine, Layer 7/8.1 assistant, or Layer 8.2 presentation code.
+ * REALWORLD Layer 8.4 — Secretary Accessibility & Notes Reliability
+ * Bundles keyboard focus management, direct notes interaction, and a clear-notes workflow.
+ * Additive/read-only: preserves the Layer 6 engine and existing company save format.
  */
 (function realworldLayer83() {
   'use strict';
 
-  const BUILD_LABEL = 'RW-LAYER-8.3.2 · Secretary Content & Focus Fix · 2026-10-14';
+  const BUILD_LABEL = 'RW-LAYER-8.4 · Secretary Accessibility & Notes Reliability · 2026-10-14';
   const SECRETARY_MEMORY_PREFIX = 'realworld-secretary-memory-v1:';
   const LOCAL_MODE_KEY = 'realworld-secretary-local-ai-enabled-v1';
   const WEBLLM_MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.86';
@@ -31,20 +31,20 @@
   .rw83-local-badge{flex-shrink:0;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:9px;font-weight:800;color:var(--good)}
   .rw83-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .rw83-tool{min-width:0;min-height:42px;text-align:left;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:8px 9px;font:inherit;font-size:11px;font-weight:750;line-height:1.35;cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
-  .rw83-tool:hover{border-color:var(--accent);background:var(--bg)}.rw83-tool:focus-visible,.rw83-local-btn:focus-visible,.rw83-memory-save:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.rw83-tool[disabled]{opacity:.55;cursor:not-allowed}
+  .rw83-tool:hover{border-color:var(--accent);background:var(--bg)}.rw83-tool:focus-visible,.rw83-local-btn:focus-visible,.rw83-memory-save:focus-visible,.rw83-memory-clear:focus-visible,.rw83-memory textarea:focus-visible{outline:3px solid var(--blue);outline-offset:2px}.rw83-tool[disabled]{opacity:.55;cursor:not-allowed}
   .rw83-tool-status{font-size:10px;line-height:1.45;color:var(--muted)}.rw83-tool-status[data-state="error"]{color:var(--danger)}.rw83-tool-status[data-state="ready"]{color:var(--good)}
   .rw83-local-card{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:7px;min-width:0}.rw83-local-title{font-size:11px;font-weight:850}.rw83-local-copy{font-size:10px;line-height:1.5;color:var(--muted)}
-  .rw83-local-btn,.rw83-memory-save{min-height:42px;border:1px solid var(--accent);border-radius:9px;background:var(--accent);color:#1f3022;padding:9px 11px;font:inherit;font-size:11px;font-weight:850;cursor:pointer;touch-action:manipulation}.rw83-local-btn[disabled]{opacity:.55;cursor:not-allowed}.rw83-local-unload{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:9px 11px;font:inherit;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}.rw83-local-unload[hidden]{display:none!important}.rw83-local-unload[disabled]{opacity:.55;cursor:not-allowed}
+  .rw83-local-btn,.rw83-memory-save,.rw83-memory-clear{min-height:42px;border:1px solid var(--accent);border-radius:9px;background:var(--accent);color:#1f3022;padding:9px 11px;font:inherit;font-size:11px;font-weight:850;cursor:pointer;touch-action:manipulation}.rw83-local-btn[disabled]{opacity:.55;cursor:not-allowed}.rw83-memory-clear{border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:7px 10px;font:inherit;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}.rw83-local-unload{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:9px 11px;font:inherit;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}.rw83-local-unload[hidden]{display:none!important}.rw83-local-unload[disabled]{opacity:.55;cursor:not-allowed}
   .rw83-local-toggle{display:flex;align-items:flex-start;gap:8px;font-size:10px;line-height:1.5;color:var(--text)}.rw83-local-toggle input{margin-top:3px;accent-color:var(--accent);flex-shrink:0}.rw83-local-toggle[hidden]{display:none!important}
-  .rw83-memory{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.rw83-memory label{font-size:11px;font-weight:800}.rw83-memory textarea{width:100%;box-sizing:border-box;min-height:66px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:9px;font:inherit;font-size:11px;line-height:1.5}.rw83-memory small{font-size:9px;line-height:1.45;color:var(--muted)}.rw83-memory-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rw83-memory-save{min-height:36px;padding:7px 10px}.rw83-memory-status{font-size:10px;color:var(--muted)}
+  .rw83-memory{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.rw83-memory label{font-size:11px;font-weight:800}.rw83-memory textarea{display:block;width:100%;box-sizing:border-box;min-height:82px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:10px;font:inherit;font-size:12px;line-height:1.5;position:relative;z-index:5;pointer-events:auto!important;user-select:text;-webkit-user-select:text;touch-action:auto}.rw83-memory small{font-size:9px;line-height:1.45;color:var(--muted)}.rw83-memory-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rw83-memory-save,.rw83-memory-clear{min-height:40px;padding:7px 10px}.rw83-memory-status{font-size:10px;color:var(--muted)}
   .rw83-report-copy{margin-top:7px;min-height:35px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:6px 9px;font:inherit;font-size:10px;font-weight:750;cursor:pointer}
   .rw83-user-body{white-space:pre-wrap;overflow-wrap:anywhere}
   .rw83-secretary[hidden]{display:none!important}
   @media(max-width:760px){.rw83-secretary{margin:7px 9px 9px;padding:10px;gap:9px}.rw83-tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.rw83-tool{min-height:46px;padding:9px;font-size:11px}.rw83-local-btn,.rw83-local-unload{min-height:46px}.rw83-memory textarea{min-height:76px}}
   @media(max-width:340px){.rw83-tools{grid-template-columns:1fr}.rw83-head{flex-wrap:wrap}.rw83-local-badge{white-space:normal}}
-  @media(pointer:coarse){.rw83-tool,.rw83-local-btn,.rw83-local-unload,.rw83-memory-save,.rw83-report-copy{min-height:44px}}
+  @media(pointer:coarse){.rw83-tool,.rw83-local-btn,.rw83-local-unload,.rw83-memory-save,.rw83-memory-clear,.rw83-report-copy{min-height:44px}}
 
-  /* Layer 8.3.2: the Business Desk panel is the single vertical scroll region.
+  /* Layer 8.4: one panel scroll region plus explicit notes input and modal focus handling.
      Avoid nested secretary/chat scroll areas and a sticky composer overlay that can
      trap tool buttons or cover the company-notes textarea on short screens. */
   .rw7-guide-panel{height:min(760px,calc(100dvh - 105px));max-height:min(760px,calc(100dvh - 105px));overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:contain;scrollbar-gutter:stable}
@@ -54,7 +54,8 @@
   .rw7-guide-messages{flex:0 0 auto;min-height:0;max-height:none;overflow:visible;overscroll-behavior:auto}
   .rw7-guide-suggestions,.rw7-guide-note{flex:0 0 auto}
   .rw7-guide-form{position:relative;bottom:auto;z-index:auto;flex:0 0 auto}
-  .rw83-memory textarea{position:relative;z-index:1;pointer-events:auto}
+  .rw83-memory{position:relative;z-index:2;isolation:isolate}
+  .rw83-memory textarea{position:relative;z-index:5;pointer-events:auto!important;user-select:text;-webkit-user-select:text;touch-action:auto}
   @media(max-width:760px){
     .rw7-guide-panel{height:min(760px,calc(100dvh - 96px));max-height:min(760px,calc(100dvh - 96px));bottom:calc(78px + env(safe-area-inset-bottom))}
     .rw83-secretary{margin-left:9px;margin-right:9px}
@@ -134,6 +135,120 @@
       kind: String(p && p.kind || 'unknown'),
       price: number(p && p.price),
       stock: number(p && p.stock),
+      baseDemand: number(p && p.baseDemand),
+      unitCost: number(p && (p.unitCost !== undefined ? p.unitCost : p.cost))
+    }));
+    const orders = list(g.purchaseOrders).filter((po) => po && po.status === 'open').slice(0, 20).map((po) => ({
+      id: String(po.id || '').slice(0, 32), productName: String(po.productName || 'Unknown item').slice(0, 80),
+      supplier: String(po.supplierName || 'Supplier').slice(0, 80), quantity: number(po.quantity), placedWeek: number(po.placedWeek),
+      etaWeek: number(po.etaWeek), delayCount: number(po.delayCount), totalCost: number(po.totalCost), payableAmount: number(po.payableAmount)
+    }));
+    const employees = list(g.employees);
+    const roles = {};
+    employees.forEach((employee) => {
+      const role = String(employee && (employee.role || employee.name) || 'Other role').slice(0, 60);
+      roles[role] = (roles[role] || 0) + 1;
+    });
+    const history = list(g.history).slice(-8).map((item) => ({
+      week: number(item.week), date: item.date || null, revenue: number(item.revenue), cogs: number(item.cogs), net: number(item.net),
+      units: number(item.units), stockouts: number(item.stockouts)
+    }));
+    const loans = list(g.loans).slice(0, 12).map((loan) => ({
+      status: String(loan && loan.status || 'unknown'), originalAmount: number(loan && loan.originalAmount),
+      principalOutstanding: number(loan && (loan.principalOutstanding !== undefined ? loan.principalOutstanding : loan.balance)),
+      weeklyPayment: number(loan && loan.weeklyPayment), arrears: number(loan && loan.arrears), interestRate: number(loan && loan.annualRate)
+    }));
+    const journal = list(g.journal).slice(-8).map((entry) => ({
+      week: number(entry.week), date: entry.date || null, description: String(entry.description || entry.memo || entry.title || 'Journal entry').slice(0, 100)
+    }));
+    const totals = g.totals && typeof g.totals === 'object' ? g.totals : {};
+    return {
+      available: true,
+      company: String(g.company || 'Unnamed company').slice(0, 100),
+      business: String(g.businessDisplayName || g.businessModel || g.industry || 'Business').slice(0, 100),
+      countryCode: String(g.countryCode || ''), currencyCode: String(g.currencyCode || 'PHP'),
+      location: String(g.location || [g.city, g.region].filter(Boolean).join(', ') || 'Not recorded').slice(0, 100),
+      status: String(g.companyStatus || 'unknown'), week: currentWeek(g), date: String(g.date || 'Not recorded'),
+      cash: number(g.cash), accountsReceivable: number(g.ar), accountsPayable: number(g.ap), overdraft: number(g.overdraft),
+      monthlyRent: number(g.monthlyRent), monthlyUtilities: number(g.monthlyUtilities), payrollPayable: number(g.payrollPayable),
+      taxPayable: number(g.taxPayable), interestPayable: number(g.interestPayable), rentPayable: number(g.rentPayable),
+      utilityPayable: number(g.utilityPayable), loanBalance: number(g.loanBalance), loanArrears: number(g.loanArrears),
+      supplierAdvances: number(g.supplierAdvances), reputation: number(g.reputation), creditScore: number(g.creditScore),
+      complianceScore: number(g.complianceScore), marketStrategy: String(g.marketStrategy || 'not recorded'),
+      totals: { revenue: number(totals.revenue), cogs: number(totals.cogs), net: number(totals.net), units: number(totals.units), stockouts: number(totals.stockouts) },
+      lastWeek: g.lastWeek && typeof g.lastWeek === 'object' ? {
+        week: number(g.lastWeek.week), revenue: number(g.lastWeek.revenue), cogs: number(g.lastWeek.cogs), net: number(g.lastWeek.net),
+        units: number(g.lastWeek.units), stockouts: number(g.lastWeek.stockouts)
+      } : null,
+      employeeCount: employees.length,
+      monthlyPayroll: sum(employees.map((e) => e && e.salary)),
+      employeeRoles: roles,
+      products,
+      openPurchaseOrders: orders,
+      loans,
+      recentHistory: history,
+      recentJournalDescriptions: journal,
+      note: 'Read-only snapshot of modeled simulation data. Missing values remain null/unknown; this is not a real bank balance or external company record.'
+    };
+  }
+  function getOperationalFlags(snapshot) {
+    if (!snapshot || !snapshot.available) return [];
+    const flags = [];
+    const cash = number(snapshot.cash);
+    if (snapshot.status === 'bankrupt') flags.push({ severity: 100, label: 'Company operations are closed', detail: 'The simulation marks this company as bankrupt. Review final records before considering a new start.' });
+    if (number(snapshot.overdraft) > 0) flags.push({ severity: 95, label: 'Bank overdraft is in use', detail: 'Incoming cash may be needed to reduce the overdraft before discretionary spending.' });
+    const fixedMonthly = (number(snapshot.monthlyRent) || 0) + (number(snapshot.monthlyUtilities) || 0);
+    if (cash !== null && fixedMonthly > 0 && cash < fixedMonthly) flags.push({ severity: 90, label: 'Cash is below one month of rent and utilities', detail: 'Review near-term bills, collections, supplier obligations, and the cash runway before optional spending.' });
+    if (number(snapshot.loanArrears) > 0) flags.push({ severity: 92, label: 'Loan arrears are recorded', detail: 'Review the loan portfolio, due amounts, and repayment status.' });
+    const week = snapshot.week;
+    snapshot.openPurchaseOrders.forEach((po) => {
+      if (number(po.etaWeek) !== null && number(po.etaWeek) < week) flags.push({ severity: 85, label: 'Supplier order overdue: ' + po.id, detail: `${po.productName} from ${po.supplier} was due in Week ${po.etaWeek}; current week is ${week}.` });
+      else if (number(po.etaWeek) === week) flags.push({ severity: 55, label: 'Supplier order due this week: ' + po.id, detail: `${po.productName} from ${po.supplier} is scheduled for Week ${week}. Check stock cover if delivery is delayed.` });
+    });
+    snapshot.products.filter((p) => p.kind === 'goods').forEach((p) => {
+      const stock = number(p.stock);
+      const demand = number(p.baseDemand);
+      if (stock !== null && (stock <= 0 || (demand !== null && demand > 0 && stock < demand * 0.4))) flags.push({ severity: stock <= 0 ? 82 : 65, label: (stock <= 0 ? 'Out of stock: ' : 'Low stock: ') + p.name, detail: `Recorded stock is ${fmt(stock, 0)} units${demand === null ? '' : ` against a base demand of ${fmt(demand, 1)} units per modeled week`}. Review demand and lead time before reordering.` });
+    });
+    if (number(snapshot.taxPayable) > 0) flags.push({ severity: 60, label: 'Tax payable is recorded', detail: `Modeled tax payable: ${formatMoney(snapshot.taxPayable)}. Check the Finance screen and the simulation's settlement timing.` });
+    if (number(snapshot.accountsPayable) > 0) flags.push({ severity: 50, label: 'Supplier and other payables are recorded', detail: `Accounts payable: ${formatMoney(snapshot.accountsPayable)}. Check timing and expected cash inflows.` });
+    if (!flags.length) flags.push({ severity: 10, label: 'No high-priority warning found by the basic checks', detail: 'Continue monitoring stock cover, bills, collections, and the latest closed-week results. This is a limited rules-based check, not a guarantee that the company has no risks.' });
+    return flags.sort((a, b) => b.severity - a.severity).slice(0, 8);
+  }
+  function reportCompanyBrief(snapshot = companySnapshot()) {
+    if (!snapshot.available) return snapshot.message;
+    const last = snapshot.lastWeek;
+    return [
+      '# Company brief',
+      `**${snapshot.company}** · ${snapshot.business}`,
+      `- Status: ${snapshot.status}`,
+      `- Current period: Week ${snapshot.week} · ${snapshot.date}`,
+      `- Location: ${snapshot.location}`,
+      `- Available cash: ${formatMoney(snapshot.cash)}`,
+      `- Accumulated revenue: ${formatMoney(snapshot.totals.revenue)}`,
+      `- Accumulated net result: ${formatMoney(snapshot.totals.net)}`,
+      `- Reputation: ${snapshot.reputation === null ? 'Not recorded' : `${fmt(snapshot.reputation, 0)}/100`}`,
+      `- Team: ${snapshot.employeeCount} employees · modeled monthly payroll ${formatMoney(snapshot.monthlyPayroll)}`,
+      `- Catalogue: ${snapshot.products.length} recorded items · ${snapshot.openPurchaseOrders.length} open supplier orders`,
+      last ? `- Latest closed week: Week ${last.week} · revenue ${formatMoney(last.revenue)} · net ${formatMoney(last.net)}` : '- Latest closed week: No completed operating week is recorded yet.',
+      '',
+      '_All figures are from the simulation and are read-only._'
+    ].join('\n');
+  }
+  function reportCashRisk(snapshot = companySnapshot()) {
+    if (!snapshot.available) return snapshot.message;
+    const flags = getOperationalFlags(snapshot);
+    const costs = (number(snapshot.monthlyRent) || 0) + (number(snapshot.monthlyUtilities) || 0);
+    return [
+      '# Cash and risk review',
+      `- Available cash: ${formatMoney(snapshot.cash)}`,
+      `- Accounts receivable: ${formatMoney(snapshot.accountsReceivable)}`,
+      `- Accounts payable: ${formatMoney(snapshot.accountsPayable)}`,
+      `- Bank overdraft: ${formatMoney(snapshot.overdraft)}`,
+      `- Loan balance (compatibility total): ${formatMoney(snapshot.loanBalance)}`,
+      `- Loan arrears: ${formatMoney(snapshot.loanArrears)}`,
+      `- Rent payable: ${formatMoney(snapshot.rentPayable)} · utilities payable: ${formatMoney(snapshot.utilityPayable)}`,
+      `- Payroll payable: ${formatMtock: number(p && p.stock),
       baseDemand: number(p && p.baseDemand),
       unitCost: number(p && (p.unitCost !== undefined ? p.unitCost : p.cost))
     }));
