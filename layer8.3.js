@@ -1,12 +1,12 @@
 /*
- * REALWORLD Layer 8.3 — Free Business Secretary Foundation
- * Additive read-only company tools, per-company local notes, and opt-in on-device AI.
- * Does not alter the Layer 6 business engine, Layer 7/8.1 assistant, or Layer 8.2 presentation code.
+ * REALWORLD Layer 8.4 — Secretary Accessibility & Notes Reliability
+ * Bundles keyboard focus management, direct notes interaction, and a clear-notes workflow.
+ * Additive/read-only: preserves the Layer 6 engine and existing company save format.
  */
 (function realworldLayer83() {
   'use strict';
 
-  const BUILD_LABEL = 'RW-LAYER-8.3 · Free Business Secretary · Local AI & Company Tools · 2026-10-14';
+  const BUILD_LABEL = 'RW-LAYER-8.4 · Secretary Accessibility & Notes Reliability · 2026-10-14';
   const SECRETARY_MEMORY_PREFIX = 'realworld-secretary-memory-v1:';
   const LOCAL_MODE_KEY = 'realworld-secretary-local-ai-enabled-v1';
   const WEBLLM_MODULE_URL = 'https://esm.run/@mlc-ai/web-llm@0.2.86';
@@ -31,18 +31,39 @@
   .rw83-local-badge{flex-shrink:0;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:9px;font-weight:800;color:var(--good)}
   .rw83-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .rw83-tool{min-width:0;min-height:42px;text-align:left;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:8px 9px;font:inherit;font-size:11px;font-weight:750;line-height:1.35;cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
-  .rw83-tool:hover{border-color:var(--accent);background:var(--bg)}.rw83-tool:focus-visible,.rw83-local-btn:focus-visible,.rw83-memory-save:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.rw83-tool[disabled]{opacity:.55;cursor:not-allowed}
+  .rw83-tool:hover{border-color:var(--accent);background:var(--bg)}.rw83-tool:focus-visible,.rw83-local-btn:focus-visible,.rw83-memory-save:focus-visible,.rw83-memory-clear:focus-visible,.rw83-memory textarea:focus-visible{outline:3px solid var(--blue);outline-offset:2px}.rw83-tool[disabled]{opacity:.55;cursor:not-allowed}
   .rw83-tool-status{font-size:10px;line-height:1.45;color:var(--muted)}.rw83-tool-status[data-state="error"]{color:var(--danger)}.rw83-tool-status[data-state="ready"]{color:var(--good)}
   .rw83-local-card{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:7px;min-width:0}.rw83-local-title{font-size:11px;font-weight:850}.rw83-local-copy{font-size:10px;line-height:1.5;color:var(--muted)}
-  .rw83-local-btn,.rw83-memory-save{min-height:42px;border:1px solid var(--accent);border-radius:9px;background:var(--accent);color:#1f3022;padding:9px 11px;font:inherit;font-size:11px;font-weight:850;cursor:pointer;touch-action:manipulation}.rw83-local-btn[disabled]{opacity:.55;cursor:not-allowed}.rw83-local-unload{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:9px 11px;font:inherit;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}.rw83-local-unload[hidden]{display:none!important}.rw83-local-unload[disabled]{opacity:.55;cursor:not-allowed}
+  .rw83-local-btn,.rw83-memory-save,.rw83-memory-clear{min-height:42px;border:1px solid var(--accent);border-radius:9px;background:var(--accent);color:#1f3022;padding:9px 11px;font:inherit;font-size:11px;font-weight:850;cursor:pointer;touch-action:manipulation}.rw83-local-btn[disabled]{opacity:.55;cursor:not-allowed}.rw83-memory-clear{border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:7px 10px;font:inherit;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}.rw83-local-unload{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);padding:9px 11px;font:inherit;font-size:11px;font-weight:800;cursor:pointer;touch-action:manipulation}.rw83-local-unload[hidden]{display:none!important}.rw83-local-unload[disabled]{opacity:.55;cursor:not-allowed}
   .rw83-local-toggle{display:flex;align-items:flex-start;gap:8px;font-size:10px;line-height:1.5;color:var(--text)}.rw83-local-toggle input{margin-top:3px;accent-color:var(--accent);flex-shrink:0}.rw83-local-toggle[hidden]{display:none!important}
-  .rw83-memory{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.rw83-memory label{font-size:11px;font-weight:800}.rw83-memory textarea{width:100%;box-sizing:border-box;min-height:66px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:9px;font:inherit;font-size:11px;line-height:1.5}.rw83-memory small{font-size:9px;line-height:1.45;color:var(--muted)}.rw83-memory-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rw83-memory-save{min-height:36px;padding:7px 10px}.rw83-memory-status{font-size:10px;color:var(--muted)}
+  .rw83-memory{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:10px}.rw83-memory label{font-size:11px;font-weight:800}.rw83-memory textarea{display:block;width:100%;box-sizing:border-box;min-height:82px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:10px;font:inherit;font-size:12px;line-height:1.5;position:relative;z-index:5;pointer-events:auto!important;user-select:text;-webkit-user-select:text;touch-action:auto}.rw83-memory small{font-size:9px;line-height:1.45;color:var(--muted)}.rw83-memory-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rw83-memory-save,.rw83-memory-clear{min-height:40px;padding:7px 10px}.rw83-memory-status{font-size:10px;color:var(--muted)}
   .rw83-report-copy{margin-top:7px;min-height:35px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:6px 9px;font:inherit;font-size:10px;font-weight:750;cursor:pointer}
   .rw83-user-body{white-space:pre-wrap;overflow-wrap:anywhere}
   .rw83-secretary[hidden]{display:none!important}
   @media(max-width:760px){.rw83-secretary{margin:7px 9px 9px;padding:10px;gap:9px}.rw83-tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.rw83-tool{min-height:46px;padding:9px;font-size:11px}.rw83-local-btn,.rw83-local-unload{min-height:46px}.rw83-memory textarea{min-height:76px}}
   @media(max-width:340px){.rw83-tools{grid-template-columns:1fr}.rw83-head{flex-wrap:wrap}.rw83-local-badge{white-space:normal}}
-  @media(pointer:coarse){.rw83-tool,.rw83-local-btn,.rw83-local-unload,.rw83-memory-save,.rw83-report-copy{min-height:44px}}
+  @media(pointer:coarse){.rw83-tool,.rw83-local-btn,.rw83-local-unload,.rw83-memory-save,.rw83-memory-clear,.rw83-report-copy{min-height:44px}}
+
+  /* Layer 8.4: one panel scroll region plus explicit notes input and modal focus handling.
+     Avoid nested secretary/chat scroll areas and a sticky composer overlay that can
+     trap tool buttons or cover the company-notes textarea on short screens. */
+  .rw7-guide-panel{height:min(760px,calc(100dvh - 105px));max-height:min(760px,calc(100dvh - 105px));overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:contain;scrollbar-gutter:stable}
+  .rw7-guide-head{position:sticky;top:0;z-index:245;flex:0 0 auto}
+  .rw8-ai-controls{flex:0 0 auto}
+  .rw83-secretary{flex:0 0 auto;min-height:auto;max-height:none!important;overflow:visible!important;overscroll-behavior: auto;scrollbar-width:auto;scrollbar-gutter:auto}
+  .rw7-guide-messages{flex:0 0 auto;min-height:0;max-height:none;overflow:visible;overscroll-behavior:auto}
+  .rw7-guide-suggestions,.rw7-guide-note{flex:0 0 auto}
+  .rw7-guide-form{position:relative;bottom:auto;z-index:auto;flex:0 0 auto}
+  .rw83-memory{position:relative;z-index:2;isolation:isolate}
+  .rw83-memory textarea{position:relative;z-index:5;pointer-events:auto!important;user-select:text;-webkit-user-select:text;touch-action:auto}
+  @media(max-width:760px){
+    .rw7-guide-panel{height:min(760px,calc(100dvh - 96px));max-height:min(760px,calc(100dvh - 96px));bottom:calc(78px + env(safe-area-inset-bottom))}
+    .rw83-secretary{margin-left:9px;margin-right:9px}
+    .rw7-guide-messages{min-height:0}
+  }
+  @media(max-height:520px){
+    .rw7-guide-panel{height:calc(100dvh - 16px);max-height:calc(100dvh - 16px);bottom:8px}
+  }
   `;
 
   function query(selector, root) {
@@ -628,9 +649,9 @@
         <div class="rw83-memory">
           <label for="rw83-memory-input">Company notes and goals</label>
           <div id="rw83-memory-company" class="rw83-local-copy">Local notes for this company</div>
-          <textarea id="rw83-memory-input" maxlength="1000" rows="3" placeholder="Example: Keep at least one month of rent in reserve. Prioritize reliable suppliers. Long-term goal: hire a delivery rider."></textarea>
-          <small>Only notes you write here are saved in this browser, separately from the game save. These notes are not sent to an online provider by the secretary tools. Review them before enabling any on-device or online context sharing.</small>
-          <div class="rw83-memory-actions"><button id="rw83-memory-save" class="rw83-memory-save" type="button">Save company notes</button><span id="rw83-memory-status" class="rw83-memory-status" role="status" aria-live="polite">Not saved yet</span></div>
+          <textarea id="rw83-memory-input" tabindex="0" aria-describedby="rw83-memory-help" maxlength="1000" rows="3" placeholder="Example: Keep at least one month of rent in reserve. Prioritize reliable suppliers. Long-term goal: hire a delivery rider."></textarea>
+          <small id="rw83-memory-help">Only notes you write here are saved in this browser, separately from the game save. These notes are not sent to an online provider by the secretary tools. Review them before enabling any on-device or online context sharing.</small>
+          <div class="rw83-memory-actions"><button id="rw83-memory-save" class="rw83-memory-save" type="button">Save company notes</button><button id="rw83-memory-clear" class="rw83-memory-clear" type="button">Clear notes</button><span id="rw83-memory-status" class="rw83-memory-status" role="status" aria-live="polite">Not saved yet</span></div>
         </div>
       </section>`);
     const toggle = query('#rw83-use-local-model');
@@ -665,6 +686,16 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       unloadLocalEngine();
+      return;
+    }
+    if (target.closest('#rw83-memory-clear')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const field = query('#rw83-memory-input');
+      if (field) field.value = '';
+      saveNotesFromUI();
+      const status = query('#rw83-memory-status');
+      if (status) status.textContent = 'Company secretary notes cleared from this device.';
       return;
     }
     if (target.closest('#rw83-memory-save')) {
@@ -713,10 +744,68 @@
     const value = input ? input.value : '';
     sendLocalQuestion(value);
   }
+  // Keep keyboard navigation complete even though the earlier Layer 7 trap only
+  // enumerated buttons and inputs. Native textarea/select controls must participate.
+  const PANEL_FOCUSABLE_SELECTOR = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"]),[contenteditable="true"]';
+  function getPanelFocusableElements() {
+    const panel = query('#rw7-guide-panel');
+    if (!panel || typeof panel.querySelectorAll !== 'function') return [];
+    let items = [];
+    try { items = Array.from(panel.querySelectorAll(PANEL_FOCUSABLE_SELECTOR)); } catch (_) { return []; }
+    return items.filter((item) => {
+      if (!item || item.disabled || item.hidden || item.type === 'hidden') return false;
+      if (item.getAttribute && (item.getAttribute('aria-hidden') === 'true' || item.getAttribute('tabindex') === '-1')) return false;
+      let parent = item.parentElement;
+      while (parent && parent !== panel) {
+        if (parent.hidden || (parent.classList && parent.classList.contains('hidden')) || (parent.getAttribute && (parent.getAttribute('aria-hidden') === 'true' || parent.getAttribute('inert') !== null))) return false;
+        parent = parent.parentElement;
+      }
+      try { if (typeof item.getClientRects === 'function' && item.getClientRects().length === 0) return false; } catch (_) {}
+      try {
+        if (typeof window.getComputedStyle === 'function') {
+          const style = window.getComputedStyle(item);
+          if (style && (style.display === 'none' || style.visibility === 'hidden')) return false;
+        }
+      } catch (_) {}
+      return true;
+    });
+  }
+  function getNextFocusableElement(elements, activeElement, backwards) {
+    const items = Array.from(elements || []);
+    if (!items.length) return null;
+    const current = items.indexOf(activeElement);
+    if (current < 0) return backwards ? items[items.length - 1] : items[0];
+    const nextIndex = (current + (backwards ? -1 : 1) + items.length) % items.length;
+    return items[nextIndex];
+  }
+  function handleNotesPointerDown(event) {
+    const field = query('#rw83-memory-input');
+    const target = event && event.target;
+    if (!field || field.disabled || !target) return;
+    const hit = target === field || (target.closest && target.closest('#rw83-memory-input'));
+    if (!hit) return;
+    // Never prevent the pointer default: the browser must still place the caret
+    // where the player tapped after focus has been restored.
+    try { if (document.activeElement !== field) field.focus({ preventScroll: true }); }
+    catch (_) { try { field.focus(); } catch (_) {} }
+  }
   function handleKeydown(event) {
+    if (event.key === 'Tab') {
+      const panel = query('#rw7-guide-panel');
+      if (!panel || (panel.classList && panel.classList.contains('hidden'))) return;
+      const focusables = getPanelFocusableElements();
+      const next = getNextFocusableElement(focusables, document.activeElement, !!event.shiftKey);
+      if (next && typeof next.focus === 'function') {
+        event.preventDefault();
+        if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+        else if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        try { next.focus({ preventScroll: true }); } catch (_) { next.focus(); }
+      }
+      return;
+    }
     if (event.key === 'Escape' && query('#rw83-secretary')) {
       const localInput = query('#rw83-memory-input');
-      if (document.activeElement === localInput) localInput.blur();
+      if (document.activeElement === localInput && typeof localInput.blur === 'function') localInput.blur();
     }
   }
   function init() {
@@ -738,6 +827,8 @@
     document.addEventListener('change', handleChange, true);
     document.addEventListener('submit', handleSubmitCapture, true);
     document.addEventListener('keydown', handleKeydown, true);
+    document.addEventListener('pointerdown', handleNotesPointerDown, true);
+    document.addEventListener('mousedown', handleNotesPointerDown, true);
     document.addEventListener('visibilitychange', updateMemoryIdentity);
     try {
       const toggle = query('#rw83-use-local-model');
@@ -760,6 +851,9 @@
     gameIdentity,
     loadMemory,
     saveMemory,
+    getPanelFocusableElements,
+    getNextFocusableElement,
+    handleNotesPointerDown,
     buildLocalMessages,
     sendLocalQuestion,
     loadLocalEngine,

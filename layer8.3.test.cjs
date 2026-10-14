@@ -54,8 +54,8 @@ class MockElement {
   querySelector(selector) { return this.ownerDocument ? this.ownerDocument.querySelector(selector) : null; }
   querySelectorAll(selector) { return this.ownerDocument ? this.ownerDocument.querySelectorAll(selector) : []; }
   closest(selector) { return selector === this.selector || selector === this.id ? this : null; }
-  focus() { this.focused = true; }
-  blur() { this.focused = false; }
+  focus() { this.focused = true; if (this.ownerDocument) this.ownerDocument.activeElement = this; }
+  blur() { this.focused = false; if (this.ownerDocument && this.ownerDocument.activeElement === this) this.ownerDocument.activeElement = null; }
 }
 
 function makeHarness({ company = null, webgpu = false, localStorageSeed = {} } = {}) {
@@ -141,9 +141,9 @@ function makeHarness({ company = null, webgpu = false, localStorageSeed = {} } =
   return { api: window.REALWORLD_LAYER83, window, document, nodes, storage, listeners, game: companyData, context };
 }
 
-test('Layer 8.3 publishes a new build and adds visible, responsive free secretary tools', () => {
+test('Layer 8.4 publishes a new build and adds visible, responsive free secretary tools', () => {
   const env = makeHarness();
-  assert.equal(env.api.build, 'RW-LAYER-8.3 · Free Business Secretary · Local AI & Company Tools · 2026-10-14');
+  assert.equal(env.api.build, 'RW-LAYER-8.4 · Secretary Accessibility & Notes Reliability · 2026-10-14');
   const markup = env.nodes.get('.rw8-ai-controls').insertedHTML;
   for (const term of ['Company brief', 'Cash and risk review', 'Stock and deliveries', 'Team and payroll', 'Weekly report', 'What needs attention?', 'Draft supplier message', 'Company notes and goals']) assert.ok(markup.includes(term), `missing ${term}`);
   assert.match(source, /@media\(max-width:760px\)/);
@@ -300,4 +300,69 @@ test('unloading the on-device model clears local mode and leaves secretary tools
   assert.match(env.nodes.get('#rw83-local-status').textContent, /model unloaded/i);
   assert.equal(env.api.reportCompanyBrief().includes('QA Leaf Trading'), true);
   assert.equal(env.game.cash, 92500);
+});
+
+
+test('Layer 8.4 keeps one vertical scroll region and exposes a directly interactive notes field', () => {
+  const env = makeHarness();
+  const before = JSON.stringify(env.game);
+  assert.match(source, /\.rw7-guide-panel\{[^}]*overflow-y:auto!important/s, 'the Business Desk panel remains the main scroll region');
+  assert.match(source, /\.rw83-secretary\{[^}]*max-height:none!important;overflow:visible!important/s, 'the secretary card must not create a nested scroll trap');
+  assert.match(source, /\.rw7-guide-messages\{[^}]*flex:0 0 auto;min-height:0;max-height:none;overflow:visible/s, 'conversation content should grow inside the panel instead of adding another scroll region');
+  assert.match(source, /\.rw7-guide-form\{position:relative;bottom:auto;z-index:auto;flex:0 0 auto\}/, 'the question form must remain in normal flow and not overlay the notes field');
+  assert.match(source, /\.rw83-memory textarea\{[^}]*pointer-events:auto!important;[^}]*user-select:text/s, 'the notes textarea remains directly interactive and selectable');
+  assert.doesNotMatch(source, /\.rw83-secretary\{[^}]*overflow-y:auto/s, 'no bounded vertical scroll should be applied to the secretary card');
+  assert.doesNotMatch(source, /\.rw7-guide-form\{position:sticky/, 'the sticky composer must not cover underlying content');
+  assert.match(source, /@media\(max-width:760px\)/);
+  assert.match(source, /@media\(max-height:520px\)/);
+  assert.equal(JSON.stringify(env.game), before, 'Layout rules do not mutate the company');
+});
+
+test('Layer 8.4 makes textarea and select controls part of the complete Business Desk focus trap', () => {
+  const env = makeHarness();
+  const markup = env.nodes.get('.rw8-ai-controls').insertedHTML;
+  assert.match(source, /textarea:not\(\[disabled\]\)/, 'textarea controls must be included in the focusable selector');
+  assert.match(source, /select:not\(\[disabled\]\)/, 'select controls must be included in the focusable selector');
+  assert.match(source, /document\.addEventListener\('keydown', handleKeydown, true\)/, 'the secretary focus handler must run before the older Layer 7 handler');
+  assert.match(source, /document\.addEventListener\('pointerdown', handleNotesPointerDown, true\)/, 'restore notes focus on pointer interaction');
+  assert.match(source, /getClientRects\(\)\.length === 0/, 'hidden controls must not pollute the focus sequence');
+  assert.match(markup, /id=\"rw83-memory-input\" tabindex=\"0\" aria-describedby=\"rw83-memory-help\"/, 'notes textarea must be explicitly focusable and have accessible help');
+  assert.match(markup, /id=\"rw83-memory-clear\"/, 'a dedicated clear-notes action must be available');
+  const hiddenControl = new MockElement('button');
+  hiddenControl.hidden = true;
+  const focusables = [new MockElement('button'), new MockElement('input'), env.nodes.get('#rw83-memory-input'), new MockElement('select'), hiddenControl];
+  focusables.forEach((element) => { element.ownerDocument = env.document; });
+  const previous = env.api.getNextFocusableElement(focusables, focusables[1], false);
+  assert.equal(previous, focusables[2], 'Tab from the local AI toggle should reach the notes textarea');
+  assert.equal(env.api.getNextFocusableElement(focusables, focusables[2], false), focusables[3]);
+  assert.equal(env.api.getNextFocusableElement(focusables, focusables[2], true), focusables[1]);
+  const panel = env.nodes.get('#rw7-guide-panel');
+  panel.querySelectorAll = () => focusables;
+  assert.deepEqual(env.api.getPanelFocusableElements(), focusables.slice(0, 4), 'hidden controls should be excluded from the trap');
+  env.document.activeElement = focusables[1];
+  let prevented = false, stopped = false;
+  env.listeners.get('keydown')[0]({ key: 'Tab', shiftKey: false, preventDefault() { prevented = true; }, stopImmediatePropagation() { stopped = true; } });
+  assert.equal(env.document.activeElement, focusables[2], 'the capture-phase Tab handler must actually focus the textarea');
+  assert.equal(prevented, true);
+  assert.equal(stopped, true, 'the old Layer 7 focus handler must not override the improved trap');
+  env.api.handleNotesPointerDown({ target: env.nodes.get('#rw83-memory-input') });
+  assert.equal(env.document.activeElement, env.nodes.get('#rw83-memory-input'), 'pointer interaction should focus the notes field');
+});
+
+test('Layer 8.4 saves and clears company notes through the actual UI handlers', () => {
+  const env = makeHarness();
+  const field = env.nodes.get('#rw83-memory-input');
+  field.value = 'L84-QA-TEST';
+  const saveEvent = { target: new MockElement('#rw83-memory-save'), preventDefault() {}, stopImmediatePropagation() {} };
+  env.listeners.get('click')[0](saveEvent);
+  assert.match(env.api.loadMemory(env.game), /L84-QA-TEST/);
+  assert.match(env.nodes.get('#rw83-memory-status').textContent, /Saved on this device/);
+  const memoryKey = `realworld-secretary-memory-v1:${env.api.gameIdentity(env.game)}`;
+  const reloaded = makeHarness({ company: env.game, localStorageSeed: { [memoryKey]: 'L84-QA-TEST' } });
+  assert.equal(reloaded.nodes.get('#rw83-memory-input').value, 'L84-QA-TEST', 'saved notes should be restored on application reinitialization');
+  const clearEvent = { target: new MockElement('#rw83-memory-clear'), preventDefault() {}, stopImmediatePropagation() {} };
+  env.listeners.get('click')[0](clearEvent);
+  assert.equal(field.value, '');
+  assert.equal(env.api.loadMemory(env.game), '');
+  assert.match(env.nodes.get('#rw83-memory-status').textContent, /cleared from this device/);
 });
