@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111714">
-  <meta name="application-version" content="RW-LAYER-8.3.2 · Secretary Content & Focus Fix · 2026-10-14">
+  <meta name="application-version" content="RW-LAYER-8.4 · Secretary Accessibility & Notes Reliability · 2026-10-14">
   <meta name="description" content="REALWORLD business simulation with free company-aware secretary tools, private local notes, and optional on-device AI.">
   <title>REALWORLD — Business Simulation</title>
   <style>
@@ -20,7 +20,7 @@
   <main id="boot-status" role="status" aria-live="polite">
     <div class="mark" aria-hidden="true">R</div>
     <h1>Opening REALWORLD</h1>
-    <p>Loading the preserved simulation and Layer 8.3.2 Business Secretary content and focus fix.</p>
+    <p>Loading the preserved simulation and Layer 8.4 Business Secretary accessibility and notes reliability.</p>
     <div class="track" aria-hidden="true"><span></span></div>
     <button id="boot-retry" type="button">Try again</button>
   </main>
@@ -49,7 +49,7 @@
     async function start(){
       if(busy)return;
       busy=true;
-      if(status){status.classList.remove('error');const h=status.querySelector('h1');const p=status.querySelector('p');if(h)h.textContent='Opening REALWORLD';if(p)p.textContent='Loading the preserved simulation and Layer 8.3.2 Business Secretary content and focus fix.';}
+      if(status){status.classList.remove('error');const h=status.querySelector('h1');const p=status.querySelector('p');if(h)h.textContent='Opening REALWORLD';if(p)p.textContent='Loading the preserved simulation and Layer 8.4 Business Secretary accessibility and notes reliability.';}
       try{
         const response=await fetch(ENGINE_URL,{mode:'cors',credentials:'omit',cache:'no-store'});
         if(!response.ok)throw new Error('Pinned game source returned HTTP '+response.status);
