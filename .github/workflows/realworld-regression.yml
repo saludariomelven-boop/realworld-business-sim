@@ -19,28 +19,33 @@ permissions:
 
 jobs:
   regression:
-    runs-on: ubuntu-latest
+    name: Run REALWORLD regression tests
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
-      - name: Check out repository
+      - name: Check out repository history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          package-manager-cache: false
 
-      - name: Run Layer 7, Layer 8.2, Layer 9, Layer 10, and loader tests
+      - name: Run Layer 7, Layer 8.2, Layer 9, Layer 10, Layer 11, and loader tests
         run: >-
           node --test
           layer7.test.cjs
           layer8.2.test.cjs
           layer9.test.cjs
           layer10.test.cjs
+          layer11.test.cjs
           loader.test.cjs
 
-      - name: Run existing business-engine regressions against pinned Layer 6.0 source
+      - name: Run existing business-engine regressions against the pinned Layer 6.0 source
         shell: bash
         run: |
           set -euo pipefail
@@ -57,18 +62,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in layer7.js layer8.2.js layer9.js layer10.js \
-            layer7.test.cjs layer8.2.test.cjs layer9.test.cjs \
-            layer10.test.cjs loader.test.cjs regression.test.cjs; do
+          for file in layer7.js layer8.2.js layer9.js layer10.js layer11.js \
+            layer7.test.cjs layer8.2.test.cjs layer9.test.cjs layer10.test.cjs \
+            layer11.test.cjs loader.test.cjs regression.test.cjs; do
             node --check "$file"
           done
-
           node - <<'NODE'
           const fs = require('node:fs');
-          const source = fs.readFileSync('index.html', 'utf8');
-          const match = source.match(/<script>([\s\S]*?)<\/script>/);
+          const html = fs.readFileSync('index.html', 'utf8');
+          const match = html.match(/<script>([\s\S]*?)<\/script>/);
           if (!match) throw new Error('Expected one bootstrap script in index.html');
-          fs.writeFileSync('/tmp/realworld-layer10-bootstrap.js', match[1]);
+          fs.writeFileSync('/tmp/realworld-layer11-bootstrap.js', match[1]);
           NODE
-
-          node --check /tmp/realworld-layer10-bootstrap.js
+          node --check /tmp/realworld-layer11-bootstrap.js
+          
