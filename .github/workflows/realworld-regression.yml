@@ -1,65 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
 
-name: REALWORLD Regression Tests
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$REPO_ROOT"
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+SOURCE_COMMIT="f63c74396ffe93d2b6ac75775833d22f8f2cb63d"
+git fetch origin "$SOURCE_COMMIT"
+git restore --source="$SOURCE_COMMIT" -- layer8.3.js layer8.3.test.cjs
+install -D "$PACKAGE_DIR/.github/workflows/realworld-regression.yml" .github/workflows/realworld-regression.yml
 
-permissions:
-  contents: read
+node --check layer8.3.js
+node --check layer8.3.test.cjs
+node --check layer9.js
+node --check layer9.test.cjs
+node --test loader.test.cjs layer7.test.cjs layer8.2.test.cjs layer8.3.test.cjs layer9.test.cjs
 
-jobs:
-  regression:
-    name: Run REALWORLD regression tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 8
-
-    steps:
-      - name: Check out repository history
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          package-manager-cache: false
-
-      - name: Run assistant, secretary, and loader tests
-        run: node --test loader.test.cjs layer7.test.cjs layer8.2.test.cjs layer8.3.test.cjs
-
-      - name: Run existing business-engine regressions against the pinned Layer 6.0 source
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp index.html /tmp/realworld-layer8-3-loader.html
-
-          restore_loader() {
-            cp /tmp/realworld-layer8-3-loader.html index.html
-          }
-
-          trap restore_loader EXIT
-
-          curl --fail --silent --show-error --location \
-            https://raw.githubusercontent.com/saludariomelven-boop/realworld-business-sim/cca64607926733ee0d1130138606b2753a67dd99/index.html \
-            --output index.html
-
-          node --test regression.test.cjs
-
-          restore_loader
-          trap - EXIT
-
-      - name: Verify JavaScript syntax
-        run: |
-          node --check layer7.js
-          node --check layer8.2.js
-          node --check layer8.3.js
-          node --check layer7.test.cjs
-          node --check layer8.2.test.cjs
-          node --check layer8.3.test.cjs
-          node --check loader.test.cjs
-          
+echo
+echo "Repair staged in working tree. Review with: git diff --stat && git diff -- .github/workflows/realworld-regression.yml"
+echo "Commit the three file changes together only after the checks above pass."
