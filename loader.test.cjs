@@ -33,10 +33,10 @@ function runLoader(fetchImpl) {
 }
 
 test('loader identifies Layer 11 and preserves the verified pinned Layer 6 engine', () => {
-  assert.match(html, /RW-LAYER-11\.0\.1 · Startup Feedback Loop Hotfix · 2026-10-14/);
+  assert.match(html, /RW-LAYER-11\.1\.0 · Reality & Reliability Integrated Release · 2026-10-15/);
   assert.match(html, /cca64607926733ee0d1130138606b2753a67dd99\/index\.html/);
   assert.match(bootScript, /REALWORLD_BUILD_ID: RW-LAYER-6\.0 \| Working Capital & Cash Runway Planning · 2026-10-13/);
-  assert.match(bootScript, /const RELEASE = '11\.0\.1'/);
+  assert.match(bootScript, /const RELEASE = '11\.1\.0'/);
 });
 
 test('loader injects the five supported add-ons with release cache keys and excludes Layer 8.3', async () => {
@@ -52,7 +52,7 @@ test('loader injects the five supported add-ons with release cache keys and excl
   assert.equal(env.document.closed, true);
   assert.match(env.document.written, /<base href="https:\/\/saludariomelven-boop\.github\.io\/realworld-business-sim\/">/);
   for (const file of ['layer7.js', 'layer8.2.js', 'layer9.js', 'layer10.js', 'layer11.js']) {
-    assert.ok(env.document.written.includes(`https://saludariomelven-boop.github.io/realworld-business-sim/${file}?v=11.0.1`), `Missing versioned ${file}`);
+    assert.ok(env.document.written.includes(`https://saludariomelven-boop.github.io/realworld-business-sim/${file}?v=11.1.0`), `Missing versioned ${file}`);
   }
   assert.doesNotMatch(env.document.written, /https:\/\/saludariomelven-boop\.github\.io\/realworld-business-sim\/layer8\.3\.js/);
 });
