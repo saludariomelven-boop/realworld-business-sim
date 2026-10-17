@@ -1,0 +1,17 @@
+
+name = "realworld-company-assistant"
+main = "src/index.js"
+compatibility_date = "2026-10-17"
+
+[vars]
+ALLOWED_ORIGIN = "https://saludariomelven-boop.github.io"
+PRIMARY_MODEL = "gemini-3.8-flash"
+FALLBACK_MODEL = "gemini-3.5-flash-lite"
+
+[[ratelimits]]
+name = "RW_AI_RATE_LIMIT"
+namespace_id = "1001"
+
+[ratelimits.simple]
+limit = 20
+period = 60
