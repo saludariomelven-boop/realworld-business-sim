@@ -1,0 +1,43 @@
+REALWORLD LAYER 12.1 — FINAL-FOR-NOW UPDATE CHECKLIST
+
+BEFORE UPLOADING
+[ ] Deploy cloudflare-worker/src/index.js to Cloudflare Workers.
+[ ] Store GEMINI_API_KEY as a Cloudflare Secret (never in GitHub/client code).
+[ ] Set ALLOWED_ORIGIN=https://saludariomelven-boop.github.io.
+[ ] Configure RW_AI_RATE_LIMIT: unique namespace ID, limit 20, period 60 seconds.
+[ ] Confirm Worker /health responds with configured:true.
+[ ] Put your actual HTTPS Worker /chat URL in assistant-config.js.
+
+UPLOAD/REPLACE ON ONE BRANCH, EXACT PATHS
+REPLACE .github/workflows/realworld-regression.yml
+REPLACE index.html
+ADD/REPLACE assistant-config.js
+REPLACE layer12.js
+ADD/REPLACE layer12.test.cjs
+REPLACE layer10.test.cjs (test expectations only; leave layer10.js unchanged)
+REPLACE layer11.test.cjs (test expectations only; leave layer11.js unchanged)
+REPLACE loader.test.cjs
+ADD cloudflare-worker/src/index.js
+ADD cloudflare-worker/src/index.test.mjs
+ADD cloudflare-worker/package.json
+ADD cloudflare-worker/wrangler.toml
+ADD/REPLACE README.md
+ADD WORKER_SETUP.md
+ADD FINAL_ACCEPTANCE_TESTER_PROMPT.txt
+ADD LOCAL_VALIDATION.txt
+ADD SHA256SUMS.txt (optional integrity reference)
+
+DO NOT REPLACE OR DELETE
+- The pinned Layer 6 core source.
+- layer7.js, layer8.2.js, layer9.js, layer10.js, layer11.js.
+- Existing layer7.test.cjs, layer8.2.test.cjs, layer9.test.cjs, regression.test.cjs.
+- Existing browser save data or other game accounting files.
+
+AFTER UPLOAD
+[ ] Let the entire GitHub Actions workflow finish; do not merge if any check fails.
+[ ] Confirm Pages is serving release 12.1.0 and direct browser player UI shows “Business Partner” without development/model labels.
+[ ] Open Business Partner, confirm there is no provider sign-in/payment prompt, and ask a company-specific question.
+[ ] Run FINAL_ACCEPTANCE_TESTER_PROMPT.txt against the live deployment once.
+[ ] Use the tester's findings for a single cleanup pass and collect a final report.
+
+No player-specific provider account is required. The shared API still has a common quota; if both models run out, the service may pause for everyone. If you enable paid API billing, the owner may incur charges.

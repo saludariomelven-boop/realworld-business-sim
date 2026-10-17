@@ -10,6 +10,8 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const layer10 = fs.readFileSync(path.join(root, 'layer10.js'), 'utf8');
 const layer11 = fs.readFileSync(path.join(root, 'layer11.js'), 'utf8');
 const layer12 = fs.readFileSync(path.join(root, 'layer12.js'), 'utf8');
+const assistantConfig = fs.readFileSync(path.join(root, 'assistant-config.js'), 'utf8');
+const worker = fs.readFileSync(path.join(root, 'cloudflare-worker/src/index.js'), 'utf8');
 const layer9Path = path.join(root, 'layer9.js');
 const layer9 = fs.existsSync(layer9Path) ? fs.readFileSync(layer9Path, 'utf8') : '';
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
@@ -34,11 +36,15 @@ function runLoader(fetchImpl) {
 }
 
 test('loader identifies Layer 12 and preserves the verified pinned Layer 6 engine', () => {
-  assert.match(html, /RW-LAYER-12\.0\.0 · Company Assistant Consolidation · 2026-10-16/);
+  assert.match(html, /RW-LAYER-12\.1\.0 · Business Partner & shared-service consolidation · 2026-10-17/);
   assert.match(html, /cca64607926733ee0d1130138606b2753a67dd99\/index\.html/);
   assert.match(bootScript, /REALWORLD_BUILD_ID: RW-LAYER-6\.0 \| Working Capital & Cash Runway Planning · 2026-10-13/);
-  assert.match(bootScript, /const RELEASE = '12\.0\.0'/);
+  assert.match(bootScript, /const RELEASE = '12\.1\.0'/);
   assert.doesNotMatch(bootScript, /const files=\[[^\]]*layer8\.3\.js/);
+  assert.doesNotMatch(bootScript, /js\.puter\.com|window\.puter|Puter\.js/i);
+  assert.match(bootScript, /rw12-early-cleanup/);
+  assert.match(bootScript, /\.brand-build,.rw11-build/);
+  assert.match(bootScript, /\.rw11-diagnostics/);
 });
 test('loader injects each supported module with release cache keys and excludes Layer 8.3', async () => {
   const base = '<!doctype html><html><head><title>Base</title></head><body><script>/* REALWORLD_BUILD_ID: RW-LAYER-6.0 | Working Capital & Cash Runway Planning · 2026-10-13 */</script></body></html>';
@@ -49,20 +55,23 @@ test('loader injects each supported module with release cache keys and excludes 
   assert.equal(requested[0].options.mode, 'cors'); assert.equal(requested[0].options.credentials, 'omit');
   assert.equal(env.document.opened, true); assert.equal(env.document.closed, true);
   assert.match(env.document.written, /<base href="https:\/\/saludariomelven-boop\.github\.io\/realworld-business-sim\/">/);
-  for (const file of ['layer7.js', 'layer8.2.js', 'layer9.js', 'layer10.js', 'layer11.js', 'layer12.js']) {
-    assert.ok(env.document.written.includes(`https://saludariomelven-boop.github.io/realworld-business-sim/${file}?v=12.0.0`), `Missing versioned ${file}`);
+  for (const file of ['assistant-config.js', 'layer7.js', 'layer8.2.js', 'layer9.js', 'layer10.js', 'layer11.js', 'layer12.js']) {
+    assert.ok(env.document.written.includes(`https://saludariomelven-boop.github.io/realworld-business-sim/${file}?v=12.1.0`), `Missing versioned ${file}`);
   }
   assert.doesNotMatch(env.document.written, /https:\/\/saludariomelven-boop\.github\.io\/realworld-business-sim\/layer8\.3\.js/);
   assert.doesNotMatch(env.document.written, /firebase-config\.js/);
 });
-test('Layer 10 stays online-only, and Layer 12 uses Puter.js user-pays without developer key setup', () => {
+test('Layer 12 uses the shared Gemini service and does not load a per-player provider SDK', () => {
   assert.doesNotMatch(layer10, /@mlc-ai\/web-llm|CreateMLCEngine|CreateWebWorkerMLCEngine|Llama-3\.2-1B-Instruct/);
   assert.match(layer10, /buildCompanySnapshot/); assert.match(layer10, /cannot post transactions or mutate the game/);
   assert.doesNotMatch(layer10, /\b(saveGame|makeEntry|placePurchaseOrder|hireEmployee|fireEmployee|runWeek|savePrice|loanRequest)\s*\(/);
-  assert.ok(layer12.includes('https://js.puter.com/v2/')); assert.ok(layer12.includes('gpt-5.6-luna'));
-  assert.match(layer12, /toolChoice: 'auto'/); assert.match(layer12, /Stage for review/);
-  assert.ok(!layer12.includes('firebase-ai.js')); assert.ok(!layer12.includes('GoogleAIBackend'));
-  assert.ok(!layer12.includes('x-goog-api-key')); assert.ok(!layer12.includes('REPLACE_WITH_FIREBASE'));
+  assert.match(layer12, /gemini-3\.8-flash/); assert.match(layer12, /REALWORLD_ASSISTANT_CONFIG/);
+  assert.doesNotMatch(layer12, /js\.puter\.com|window\.puter|puter\.ai\.chat/);
+  assert.match(layer12, /Stage for review/); assert.match(layer12, /Use active company details/);
+  assert.match(assistantConfig, /endpoint:\s*['"](?:https:\/\/[^'"]*)?['"]/); assert.doesNotMatch(assistantConfig, /AIza[0-9A-Za-z_-]{20,}/);
+  assert.match(worker, /GEMINI_API_KEY/); assert.match(worker, /gemini-3\.5-flash-lite/);
+  assert.match(worker, /RW_AI_RATE_LIMIT/); assert.match(worker, /Mandatory server rules/);
+  assert.doesNotMatch(worker, /test-secret-never-return-this/);
 });
 test('the accepted Layer 9 closure and accounting guardrails remain present', (t) => {
   if (!fs.existsSync(layer9Path)) return t.skip('Layer 9 is preserved and not included in this replacement bundle; the target repository test will inspect it.');

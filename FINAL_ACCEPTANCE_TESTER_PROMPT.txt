@@ -1,0 +1,64 @@
+You are the independent QA auditor for the complete REALWORLD Business Simulation Layer 12.1 final-for-now update.
+
+LIVE APP: https://saludariomelven-boop.github.io/realworld-business-sim/
+RELEASE TARGET: RW-LAYER-12.1.0 · Business Partner & shared-service consolidation · 2026-10-17
+
+IMPORTANT SCOPE
+This is a whole-release audit. Do not repeat any old provider-specific test prompt and do not spend the audit checking an individual provider SDK. Audit the actual current live game, the deployed shared-service endpoint, the user's visible UI, and regressions across the entire simulation. Do not edit code, create commits, merge anything, or perform destructive actions. Use a disposable test company only when necessary; never alter the user's main/saved company. If the shared service is not configured or cannot be reached, report it as a blocking environment/configuration issue rather than pretending it passed.
+
+MISSION
+Discover what is wrong, missing, inaccurate, confusing, unsafe, or inconsistent; verify what is working; and suggest other useful ideas. Be skeptical and evidence-based. Compare assistant claims against actual visible game state and the controls/formulas shown in the live build. Do not guess when a value, mechanic, or current state cannot be verified.
+
+A. RELEASE / FIRST-PAINT / BRANDING
+1. Hard-refresh the public game and record its release/build evidence from the visible interface and script requests. No development/build labels should be visible to players.
+2. The assistant's visible name must be “Business Partner.” The UI must not call it “AI,” show model/provider names, show provider connection/sign-in controls, show development phase numbers, or prompt the player to buy a personal provider quota.
+3. Confirm the interface is usable on a narrow Android/mobile viewport and desktop, including open/close controls, keyboard submission, visible focus, scroll area, and error states.
+4. Confirm normal game loading does not depend on the online assistant being available.
+
+B. SHARED SERVICE / NO PERSONAL PAY-TO-PLAY FLOW
+1. Confirm the app sends requests to the configured HTTPS shared-service endpoint and the Worker reports configured status. Never expose or copy its secret.
+2. Test normal request/response and an ordinary multi-turn follow-up. Confirm no player provider sign-in, personal API key, or payment workflow appears.
+3. Confirm quota/rate-limit/service-down errors are understandable and do not ask the player to pay. If the service is down, report exactly that; do not mark AI-dependent cases passed.
+4. Check allowed-origin behavior, malformed/oversized messages, rate limiting, model fallback handling, and that secret values are never returned in errors/logged to the UI. A browser CORS test alone is not proof against abuse; report additional abuse-risk observations.
+5. Check the Connection and privacy disclosure. It should explain that prompts go to Google Gemini through a shared service, that active-company context is sent when enabled, that free-tier provider data terms may allow prompts to improve products, and that the game owner may be billed if paid API billing is enabled.
+
+C. COMPANY-STATE ACCURACY
+Use a disposable company with known values and compare the assistant's answer with the actual current app. Test questions about:
+- Company name, current week/status, cash and recent revenue/profit/history.
+- Product prices, stock, demand, stock-outs, costs, and services if shown.
+- Supplier orders, quantities, ETA/deliveries/logistics jobs, and events.
+- Employees, wages/payroll obligations, loans/arrears, assets, liabilities, and recorded journal/history.
+- Cash runway, risks, priority queue, market strategy, and saved decision log.
+
+Ask the assistant to calculate at least one metric from recorded values. Check arithmetic, units, currency, use of missing/unknown data, and whether it clearly distinguishes real-world business principles from simulation mechanics. It must not fabricate zero values, rates, hidden rules, or current legal/tax facts. When context is toggled off, verify it does not receive the company snapshot; when on, verify it uses the right active company and never mixes data across companies.
+
+D. GAME MECHANICS / ACTIONS / COMPANY MANAGEMENT
+Ask specific practical prompts such as “What is causing my cash risk?”, “What should I prioritize this week and why?”, “Open finance,” “Show my stock report,” “Help me test a price change for [an actual goods product],” “Stage the premium market strategy,” “Prepare a sensible weekly marketing scenario,” and “Help me evaluate capacity investment.”
+
+Verify that:
+- Navigation opens the requested supported view, and read-only reports show the actual local company data.
+- Price actions choose an exact existing goods item and one supported percentage, then fill the existing price field only after the player clicks “Stage for review.”
+- Marketing scenarios use current budget and supported factors and only prefill the native budget form.
+- Market positioning and capacity growth use the existing Layer 11 growth/strategy planners and their native cash/risk checks.
+- The app communicates clearly what was staged and what still requires native saving/confirmation.
+- Unsupported actions, invented products/IDs, unsupported percentages, malformed tool arguments, wrong-company state, or closed/bankrupt company changes are rejected safely.
+- Asking for a loan, purchase, supplier order, hire/fire, payroll, week close, company deletion, or business closure results in accurate instructions and a link/route to relevant native controls, never a claim that the transaction already happened. In particular do not accidentally execute a week close or closure during QA.
+
+Also ask “How does [a mechanic actually present in this build] work?” and “What should I do if [a known in-game problem] happens?” Verify the explanations from real screens/data/source behavior; if the game does not expose a rule, the assistant should clearly say it cannot verify that rule rather than inventing one.
+
+E. REGRESSION / STATE PRESERVATION
+Without risking the user's primary save, verify representative flows across company create/resume, save/reload, dashboard, operations, market, people, finance, risk, reports, supplier/logistics, assets/capacity, events, closure, and decision history. Confirm all accounting and state mutation is still performed by the accepted game runtime; existing history and ledger remain intact. Try a page reload while a request is in flight and clearing the conversation. Look for duplicate controls, stale labels, broken theme/layout, JavaScript exceptions, failed network requests, or stuck loading states.
+
+F. ACCESSIBILITY / UX / ERROR HANDLING
+Check 320–390 px mobile widths, tablet and desktop; tap targets; focus states; screen-reader labels; long responses; large company snapshots; message history growth; clear conversation; no response; malformed response; offline network; Worker 429 quota state; primary model failure with fallback; and both models unavailable. No transaction must silently execute because of a chat response.
+
+G. REPORT OUTPUT
+Return a structured audit containing:
+1. Summary of what truly passed and what was not testable.
+2. Blocking issues (P0/P1), then major (P2), minor (P3), and polish/ideas.
+3. For every issue: severity, exact screen/action, reproduction steps, expected vs actual, evidence (screenshot or console/network detail where supported), likely file/module, and a proposed fix.
+4. Explicit findings for: in-game fact accuracy; unsupported/hallucinated mechanics; action permission/validation; data/privacy; quota/cost and abuse risk; mobile UX; visible development/AI/provider labels; accounting/save/closure/ledger regressions.
+5. Additional ideas ranked by value versus risk/complexity. Mark speculative ideas separately from verified faults.
+6. A final pass/fail recommendation with the precise reasons and a short must-fix list ordered for a single cleanup release.
+
+Do not claim live Provider/Gemini tests passed if the endpoint is blank or service cannot be reached. Do not fix anything; the task is audit and recommendations only, so the owner can apply a coordinated cleanup after reviewing your complete report.

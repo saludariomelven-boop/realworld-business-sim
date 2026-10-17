@@ -45,10 +45,10 @@ function makeHarness(company = sampleCompany(), options = {}) {
 function flushNativeEvents() { return new Promise((resolve) => setImmediate(resolve)); }
 
 test('loader identifies Layer 12, pins the accepted Layer 6 engine, and cache-busts the complete supported stack', () => {
-  assert.match(loader, /RW-LAYER-12\.0\.0 · Company Assistant Consolidation · 2026-10-16/);
+  assert.match(loader, /RW-LAYER-12\.1\.0 · Business Partner & shared-service consolidation · 2026-10-17/);
   assert.match(loader, /cca64607926733ee0d1130138606b2753a67dd99\/index\.html/);
-  assert.match(loader, /const RELEASE = '12\.0\.0'/);
-  for (const file of ['layer7.js', 'layer8.2.js', 'layer9.js', 'layer10.js', 'layer11.js', 'layer12.js']) assert.ok(loader.includes(file));
+  assert.match(loader, /const RELEASE = '12\.1\.0'/);
+  for (const file of ['assistant-config.js', 'layer7.js', 'layer8.2.js', 'layer9.js', 'layer10.js', 'layer11.js', 'layer12.js']) assert.ok(loader.includes(file));
   assert.doesNotMatch(loader, /const files=\[[^\]]*layer8\.3\.js/);
 });
 

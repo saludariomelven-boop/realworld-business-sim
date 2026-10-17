@@ -1,40 +1,60 @@
-# REALWORLD 11.2.0 — Reliability & Continuity Release Candidate
+# REALWORLD Layer 12.1 — Final-for-now integrated update
 
-This is a consolidated **complete-file replacement bundle** for the current deployed 11.1.0 build. It carries the four low-severity issues found during 11.1.0 acceptance into one grouped update; it is not a sequence of patches.
+**Release:** `RW-LAYER-12.1.0 · Business Partner & shared-service consolidation · 2026-10-17`
 
-## Required replacement files (replace all six in one commit)
+This is the next integrated phase after the existing Layers 7–11. It is intended to be the final planned feature update for now. After this is configured and passes CI, use `FINAL_ACCEPTANCE_TESTER_PROMPT.txt` for one independent end-to-end audit, then fix the audit findings as a single cleanup pass.
 
-1. `index.html`
-2. `layer10.js`
-3. `layer10.test.cjs`
-4. `layer11.js`
-5. `layer11.test.cjs`
-6. `loader.test.cjs`
+## What this update changes
 
-The bundle deliberately does **not** replace the pinned Layer 6 engine, `layer7.js`, `layer8.2.js`, `layer9.js`, `layer9.test.cjs`, `regression.test.cjs`, or the workflow. The Layer 10 integration layer applies the visual and control-state corrections without changing the accounting engine or investment economics.
+- Replaces the browser-based, player-account provider with a shared Google Gemini service called by a Cloudflare Worker. No player needs a Gemini/Puter account, a personal API key, or a separate payment checkout.
+- Uses `gemini-3.8-flash` first and tries `gemini-3.5-flash-lite` if the primary model is unavailable or rate-limited.
+- Keeps the provider API key in Cloudflare Worker secrets. `assistant-config.js` holds only the public HTTPS endpoint.
+- Renames the visible guide to **Business Partner**. Build IDs, model names, old sign-in/provider controls, and old assistant labels are hidden from the player-facing UI, including the initial render.
+- Includes active-company data by default for company-aware answers, with a visible **Use active company details** toggle and a clear privacy disclosure. Turn it off for general questions.
+- Gives the Business Partner access to a structured current company snapshot by default (with a visible opt-out); it can answer questions about the game's recorded cash, sales/history, stock, orders, staff, loans, assets, events, risks, and saved decisions; open supported game views; show read-only local reports; and stage supported selling-price, marketing, market-positioning, and capacity-growth changes for review. The prompt explicitly allows only those validated in-game tools, and corrects the legacy prompt that incorrectly described all game actions as impossible.
+- Keeps irreversible and high-impact flows—purchases, supplier orders, loans, staffing/payroll, week close, deleting a company, and business closure—inside the existing native game controls. The assistant must not claim it completed them.
+- Adds Worker tests for origin handling, missing secrets, oversized requests, rate limiting, model fallback, and exhausted shared quota; keeps all existing simulation regression tests in the CI workflow.
 
-## Included fixes
+## Important service limits and privacy
 
-- Growth and working-capital panels are explicitly moved directly beneath the Finance page heading after render, in addition to the existing HTML promotion logic.
-- A capacity-investment cooldown is displayed as a disabled, grey control with a clear `Available in N weeks` label, rather than a green-looking action that does nothing.
-- The single-loan status summary displays the stored annual rate to one decimal place (e.g., 12.5%), matching the loan approval notification instead of rounding it to 13%.
-- After voluntary closure or bankruptcy, the global Close week control is disabled, receives an accessible label/title, and gets a non-actionable appearance. Returning to an active company clears only the closure-specific disabled state.
-- Release metadata and the five script cache keys are updated together to `11.2.0`.
-- New regression tests cover these behaviors.
+This is **not pay-to-win through individual player accounts**: every player uses the same game-owned service. It is not unlimited, though. The Google API's shared project quota can still run out; when both model attempts fail, the assistant pauses for everyone rather than asking a player to pay. If the owner enables a paid Google API tier, the owner—not each player—may incur charges. Do not enable paid billing unless you accept that cost. Google states that free-tier API content may be used to improve products; the in-game Connection and privacy section discloses this. Do not enter real or confidential information into game notes.
 
-## Safe application and release flow
+Current official references:
 
-1. Keep live `main` at its current accepted 11.1.0 commit until this release candidate is ready.
-2. Create a development branch in GitHub and upload/replace all six files together. Do not upload them piecemeal to `main`.
-3. Open a pull request. Wait for the existing `REALWORLD Regression Tests` workflow to pass, including the pinned-engine 109-test regression suite and syntax checks.
-4. Merge only after CI passes. Wait for Pages deployment to finish.
-5. Run `PHASE5_ACCEPTANCE_PROMPT.md` on the deployed 11.2.0 release. It includes the four acceptance defects, a controlled 13-week continuity scenario, and an export/import round-trip.
-6. Do not declare the release complete until the 13-week scenario, restore test, and post-closure controls have been verified. A local test result does not replace GitHub CI or live browser acceptance.
+- Gemini model catalog: https://ai.google.dev/gemini-api/docs/models
+- Gemini API pricing: https://ai.google.dev/gemini-api/docs/pricing
+- Gemini API billing and spend controls: https://ai.google.dev/gemini-api/docs/billing
+- Gemini OpenAI-compatible API and tool calling: https://ai.google.dev/gemini-api/docs/openai
+- Cloudflare Workers rate-limit binding: https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
 
-The connected GitHub integration previously rejected branch creation with HTTP 403, so this bundle has **not** been pushed or deployed by this session. The current deployed 11.1.0 app remains untouched.
+Provider free quotas, data terms, available models, and prices can change. Check AI Studio before deployment. CORS is not authentication; the Worker also uses a rate-limit binding and provider-side quotas, so deploy it with the provided protection and avoid exposing a paid key in client files.
 
-## Testing performed while preparing this bundle
+## Files in this bundle
 
-- `node --check` passed for modified JavaScript and test files.
-- Focused tests: **43 passed, 0 failed** for `layer10.test.cjs`, `layer11.test.cjs`, and `loader.test.cjs`, with the Layer 9 test dependency present locally. The test-only copy used to satisfy the dependency was not included in this replacement bundle.
-- The complete GitHub workflow has not yet been rerun against this 11.2.0 candidate.
+### Add or replace in the repository
+
+- `.github/workflows/realworld-regression.yml` — full regression suite and syntax checks, including the Worker tests.
+- `index.html` — release 12.1.0 bootloader, early UI cleanup, pinned engine retained.
+- `assistant-config.js` — public endpoint configuration. Set `endpoint` to the deployed Worker's HTTPS `/chat` URL before the live test.
+- `layer12.js` — shared-service client, Business Partner UI, company tools, validation, and staged action bridge.
+- `layer12.test.cjs` — focused client/guardrail tests.
+- `layer10.test.cjs` and `layer11.test.cjs` — complete existing test files with loader/version expectations updated.
+- `loader.test.cjs` — verifies the release, loaded files, shared endpoint config, and absence of direct client provider use.
+- `cloudflare-worker/src/index.js` — Gemini-backed shared service.
+- `cloudflare-worker/src/index.test.mjs` — Worker tests.
+- `cloudflare-worker/package.json` and `cloudflare-worker/wrangler.toml` — Worker package/deployment settings.
+- `WORKER_SETUP.md`, `INSTALL_CHECKLIST.txt`, and `FINAL_ACCEPTANCE_TESTER_PROMPT.txt` — setup, upload checklist, and the one post-deployment audit prompt.
+
+## Do not replace these accepted simulation modules
+
+Leave these existing repository files unchanged: the pinned Layer 6 core source, `layer7.js`, `layer8.2.js`, `layer9.js`, `layer10.js`, `layer11.js`, `layer7.test.cjs`, `layer8.2.test.cjs`, `layer9.test.cjs`, and `regression.test.cjs`. This bundle deliberately does **not** include a replacement `layer10.js` or `layer11.js` runtime. Their existing company state, accounting, decision ledger, business closure, and game save paths must be preserved.
+
+## Recommended one-pass release order
+
+1. Read `WORKER_SETUP.md` and deploy the Worker with its API key stored as a Cloudflare **Secret**, not in GitHub.
+2. Paste the Worker URL into `assistant-config.js`. Use the exact deployed URL ending in `/chat`.
+3. Create one branch from the current green baseline and upload all repository files listed above, preserving their folders. Do not upload `layer10.js` or replace the pinned core.
+4. Run the entire GitHub Actions workflow. Do not merge if any test is red.
+5. After the Worker reports `configured: true`, GitHub Pages is updated, and CI is green, open `FINAL_ACCEPTANCE_TESTER_PROMPT.txt` and run it against the live game. It audits the entire update—not a repeat of a provider-specific test. Use the report for the final cleanup pass.
+
+The initial endpoint in `assistant-config.js` is intentionally blank. Until the Worker's endpoint is entered and the Worker has its server-side secret, online Business Partner requests will fail closed with a clear configuration message; the game itself should still load and local reports should still work.

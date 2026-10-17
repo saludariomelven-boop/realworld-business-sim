@@ -78,9 +78,9 @@ test('Layer 10 loader preserves pinned Layer 6 and skips the former on-device AI
   assert.match(loader, /layer8\.2\.js/);
   assert.match(loader, /layer9\.js/);
   assert.match(loader, /layer10\.js/);
-  assert.match(loader, /const files=\['layer7\.js','layer8\.2\.js','layer9\.js','layer10\.js','layer11\.js','layer12\.js'\]/);
+  assert.match(loader, /const files=\['assistant-config\.js','layer7\.js','layer8\.2\.js','layer9\.js','layer10\.js','layer11\.js','layer12\.js'\]/);
   assert.match(loader, /\?v=\'\+RELEASE/);
-  assert.match(loader, /RW-LAYER-12\.0\.0/);
+  assert.match(loader, /RW-LAYER-12\.1\.0/);
 });
 
 test('the new runtime contains no WebLLM or downloaded on-device model loader', () => {

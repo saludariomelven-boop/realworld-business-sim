@@ -19,24 +19,38 @@ function makeHarness() {
         appendChild(child) { this.children.push(child); }, remove() {}, focus() {}, scrollIntoView() {} };
     }
   };
-  const window = {};
-  const context = vm.createContext({ window, document, console, Intl, Date, Math, Number, String, Object, Array, Set, Map, JSON, RegExp, Promise, AbortController, Event });
+  const window = { REALWORLD_ASSISTANT_CONFIG: { endpoint: 'https://assistant.example.test/chat' } };
+  const context = vm.createContext({ window, document, console, Intl, Date, Math, Number, String, Object, Array, Set, Map, JSON, RegExp, URL, Promise, AbortController, Event, setTimeout, clearTimeout, fetch: async () => { throw new Error('Test fetch was not configured'); } });
   vm.runInContext(source, context, { filename: 'layer12.js', timeout: 10000 });
   return { api: window.REALWORLD_LAYER12, window, document, listeners, context };
 }
 function snapshot() {
   return { available: true, companyIdentity: { company: 'QA company', companyStatus: 'active' }, companyState: { companyStatus: 'active', marketingBudget: 1000, products: [{ id: 'p1', name: 'Water', kind: 'goods', price: 35 }] } };
 }
+function mockRuntime(messages) {
+  return {
+    buildPrompt(question) { return { messages: [{ role: 'system', content: 'Use current simulation facts.' }, { role: 'user', content: question }], included: true }; },
+    addMessage(role, title, text, pending) { const wrapper = { children: [], appendChild(child) { this.children.push(child); } }; const ref = { role, title, text, pending, wrapper }; messages.push(ref); return ref; },
+    updateMessage(ref, text, pending) { ref.updatedText = text; ref.pending = pending; },
+    buildCompanySnapshot: snapshot,
+    report(type) { return 'Local ' + type + ' report for QA company'; },
+    formatReportInChat(title, body) { messages.push({ role: 'assistant', title, text: body }); },
+    clearAssistantConversation() {}
+  };
+}
 
-test('Layer 12 uses Puter user-pays without a developer API key', () => {
+test('Layer 12 uses a configured shared endpoint and contains no direct Puter provider', () => {
   const env = makeHarness();
-  assert.equal(env.api.build, 'RW-LAYER-12.0.0 · Company Assistant Consolidation · 2026-10-16');
-  assert.equal(env.api.model, 'gpt-5.6-luna');
-  assert.equal(env.api.getState().provider, 'puter-user-pays');
-  assert.match(source, /https:\/\/js\.puter\.com\/v2\//);
-  assert.doesNotMatch(source, /REPLACE_WITH_FIREBASE|firebase-ai\.js|x-goog-api-key/);
+  assert.equal(env.api.build, 'RW-LAYER-12.1.0 · Business Partner & shared-service consolidation · 2026-10-17');
+  assert.equal(env.api.model, 'gemini-3.8-flash');
+  assert.equal(env.api.getState().provider, 'shared-gemini-worker');
+  assert.equal(env.api.getState().configured, true);
+  assert.doesNotMatch(source, /js\.puter\.com|window\.puter|puter\.ai\.chat/);
+  assert.match(source, /REALWORLD_ASSISTANT_CONFIG/);
+  assert.match(source, /callSharedService/);
 });
-test('message normalization preserves system instructions and merges adjacent same-role messages', () => {
+
+test('message normalization preserves app instructions and merges adjacent same-role messages', () => {
   const normalized = makeHarness().api.normalizeMessages([
     { role: 'system', content: 'System prompt' }, { role: 'assistant', content: 'old opening removed' },
     { role: 'user', content: 'Question one' }, { role: 'user', content: 'Question two' },
@@ -47,9 +61,11 @@ test('message normalization preserves system instructions and merges adjacent sa
   assert.match(normalized[1].content, /Question one[\s\S]*Question two/);
   assert.equal(normalized.at(-1).content, 'Final question');
 });
+
 test('message normalization rejects a history without a final user question', () => {
   assert.throws(() => makeHarness().api.normalizeMessages([{ role: 'assistant', content: 'only an answer' }]), /final user message/i);
 });
+
 test('tool-call decoding safely parses proposals and rejects invalid JSON', () => {
   const api = makeHarness().api;
   const ordinary = api.extractToolProposal({ message: { content: 'A normal answer.' } });
@@ -59,6 +75,7 @@ test('tool-call decoding safely parses proposals and rejects invalid JSON', () =
   const invalid = api.extractToolProposal({ message: { tool_calls: [{ function: { name: 'propose_company_action', arguments: '{invalid' } }] } });
   assert.match(invalid.error, /could not be read/i);
 });
+
 test('price proposals require an exact existing goods product and supported percentage', () => {
   const api = makeHarness().api;
   assert.equal(api.validateAction({ type: 'stage_price', productId: 'p1', adjustmentPct: 5 }, snapshot()).action.targetPrice, 36.75);
@@ -66,20 +83,33 @@ test('price proposals require an exact existing goods product and supported perc
   assert.equal(api.validateAction({ type: 'stage_price', productId: 'p1', adjustmentPct: 99 }, snapshot()).ok, false);
   assert.equal(api.validateAction({ type: 'stage_price', productId: 'p1', adjustmentPct: 5 }, { available: true, companyState: { products: [{ id: 'p1', kind: 'service', price: 35 }] } }).ok, false);
 });
-test('marketing and capacity scenarios are bounded proposals only', () => {
+
+test('marketing, strategy, and capacity are bounded staged proposals', () => {
   const api = makeHarness().api;
   const marketing = api.validateAction({ type: 'stage_marketing', factor: 1.25 }, snapshot());
   assert.equal(marketing.ok, true); assert.equal(marketing.action.stagedAmount, 1300);
   assert.equal(api.validateAction({ type: 'stage_marketing', factor: 3 }, snapshot()).ok, false);
   assert.equal(api.validateAction({ type: 'stage_capacity', amount: 50000 }, snapshot()).ok, true);
   assert.equal(api.validateAction({ type: 'stage_capacity', amount: -1 }, snapshot()).ok, false);
+  assert.equal(api.validateAction({ type: 'stage_strategy', strategyId: 'premium' }, snapshot()).ok, true);
+  assert.equal(api.validateAction({ type: 'stage_strategy', strategyId: 'invented' }, snapshot()).ok, false);
 });
-test('assistant rejects loans, purchases, week close, supplier orders, and closure', () => {
+
+test('read-only report and navigation actions are allowlisted', () => {
   const api = makeHarness().api;
-  for (const type of ['loan', 'purchase', 'commit_purchase', 'week_close', 'close_business', 'delete_company', 'stage_supplier_order']) {
+  assert.equal(api.validateAction({ type: 'navigate', view: 'finance' }, snapshot()).ok, true);
+  assert.equal(api.validateAction({ type: 'navigate', view: 'settings' }, snapshot()).ok, false);
+  assert.equal(api.validateAction({ type: 'show_report', reportType: 'cash' }, snapshot()).ok, true);
+  assert.equal(api.validateAction({ type: 'show_report', reportType: 'arbitrary' }, snapshot()).ok, false);
+});
+
+test('assistant rejects direct transactions, loans, supplier orders, week close, and closure', () => {
+  const api = makeHarness().api;
+  for (const type of ['loan', 'purchase', 'commit_purchase', 'week_close', 'close_business', 'delete_company', 'stage_supplier_order', 'hire_employee', 'fire_employee']) {
     assert.equal(api.validateAction({ type }, snapshot()).ok, false, `expected ${type} to be rejected`);
   }
 });
+
 test('closed or insolvent companies cannot receive staged operating actions; navigation remains available', () => {
   const api = makeHarness().api; const data = snapshot();
   data.companyIdentity.companyStatus = 'closed';
@@ -88,44 +118,71 @@ test('closed or insolvent companies cannot receive staged operating actions; nav
   assert.equal(api.validateAction({ type: 'stage_marketing', factor: 1.25 }, data).ok, false);
   assert.equal(api.validateAction({ type: 'navigate', view: 'finance' }, data).ok, true);
 });
+
 test('proposal validation leaves company state unchanged', () => {
   const api = makeHarness().api; const data = snapshot(); const before = JSON.stringify(data);
   api.validateAction({ type: 'stage_price', productId: 'p1', adjustmentPct: -5 }, data);
   api.validateAction({ type: 'stage_marketing', factor: 1.5 }, data);
+  api.validateAction({ type: 'stage_strategy', strategyId: 'value' }, data);
   assert.equal(JSON.stringify(data), before);
 });
-test('sendQuestion uses Puter with the built company-aware prompt and displays the answer', async () => {
+
+test('sendQuestion posts the company-aware prompt to the configured shared service', async () => {
   const env = makeHarness(); const messages = [];
-  env.window.REALWORLD_LAYER10 = {
-    buildPrompt(question) { return { messages: [{ role: 'system', content: 'Use current simulation facts.' }, { role: 'user', content: question }], included: true }; },
-    addMessage(role, title, text, pending) { const wrapper = { children: [], appendChild(child) { this.children.push(child); } }; const ref = { role, title, text, pending, wrapper }; messages.push(ref); return ref; },
-    updateMessage(ref, text, pending) { ref.updatedText = text; ref.pending = pending; }, buildCompanySnapshot: snapshot
-  };
+  env.window.REALWORLD_LAYER10 = mockRuntime(messages);
   let request = null;
-  env.window.puter = { ai: { chat: async (chatMessages, options) => { request = { chatMessages, options }; return { message: { content: 'Use the recorded cash value in the finance panel.' } }; } } };
-  assert.equal(await env.api.sendQuestion('How much cash do I have?'), true);
-  assert.equal(request.options.model, 'gpt-5.6-luna'); assert.equal(request.options.normalize, true);
-  assert.equal(request.chatMessages.at(-1).content, 'How much cash do I have?');
-  assert.equal(messages[1].updatedText, 'Use the recorded cash value in the finance panel.'); assert.equal(env.api.getState().busy, false);
-});
-test('a tool proposal waits for a separate Stage for review click', async () => {
-  const env = makeHarness(); let navigationCount = 0;
-  env.context.navSet = () => { navigationCount += 1; };
-  const messages = [];
-  env.window.REALWORLD_LAYER10 = {
-    buildPrompt(question) { return { messages: [{ role: 'system', content: 'Game snapshot' }, { role: 'user', content: question }] }; },
-    addMessage(role, title, text) { const wrapper = { children: [], appendChild(child) { this.children.push(child); } }; const ref = { role, title, text, wrapper }; messages.push(ref); return ref; },
-    updateMessage(ref, text) { ref.updatedText = text; }, buildCompanySnapshot: snapshot
+  env.context.fetch = async (url, options) => {
+    request = { url, options, body: JSON.parse(options.body) };
+    return { ok: true, status: 200, json: async () => ({ ok: true, model: 'gemini-3.8-flash', message: { content: 'Use the recorded cash value in the finance panel.' } }) };
   };
-  env.window.puter = { ai: { chat: async () => ({ message: { content: null, tool_calls: [{ function: { name: 'propose_company_action', arguments: '{"type":"navigate","view":"finance"}' } }] } }) } };
-  assert.equal(await env.api.sendQuestion('Open the finance section.'), true); assert.equal(navigationCount, 0);
+  assert.equal(await env.api.sendQuestion('How much cash do I have?'), true);
+  assert.equal(request.url, 'https://assistant.example.test/chat');
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.credentials, 'omit');
+  assert.equal(request.body.messages.at(-1).content, 'How much cash do I have?');
+  assert.equal(messages[1].updatedText, 'Use the recorded cash value in the finance panel.');
+  assert.equal(env.api.getState().busy, false);
+});
+
+test('navigation requested by the player uses the validated native navigation path', async () => {
+  const env = makeHarness(); let navigationCount = 0; const messages = [];
+  env.context.navSet = () => { navigationCount += 1; };
+  env.window.REALWORLD_LAYER10 = mockRuntime(messages);
+  env.context.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, message: { content: null, tool_calls: [{ function: { name: 'propose_company_action', arguments: '{"type":"navigate","view":"finance"}' } }] } }) });
+  assert.equal(await env.api.sendQuestion('Open the finance section.'), true);
+  assert.equal(navigationCount, 1);
+  assert.match(messages[1].updatedText, /Opened finance/);
+  assert.equal(messages[1].wrapper.children.some((child) => child.className === 'rw12-proposal'), false);
+});
+
+test('a financial proposal waits for a separate Stage for review click', async () => {
+  const env = makeHarness(); const messages = [];
+  env.window.REALWORLD_LAYER10 = mockRuntime(messages);
+  env.window.REALWORLD_LAYER11 = { stageCompetitiveProfile(id) { return { ok: true, profile: id }; } };
+  env.context.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, message: { content: 'I prepared this option for your review.', tool_calls: [{ function: { name: 'propose_company_action', arguments: '{"type":"stage_strategy","strategyId":"premium"}' } }] } }) });
+  assert.equal(await env.api.sendQuestion('Stage premium positioning for me.'), true);
   const card = messages[1].wrapper.children.find((child) => child.className === 'rw12-proposal'); assert.ok(card);
   const stageButton = card.children.find((child) => child.textContent === 'Stage for review'); assert.ok(stageButton);
-  stageButton.listeners.click(); assert.equal(navigationCount, 1);
+  assert.equal(typeof stageButton.listeners.click, 'function');
 });
-test('system instruction requires review and prohibits silent transaction execution', () => {
+
+test('required game instructions cover company-state accuracy and explicit transaction boundaries', () => {
   const messages = makeHarness().api.appendSystemInstruction([{ role: 'user', content: 'Please advise.' }]);
-  assert.match(messages[0].content, /cannot directly write game saves/i);
-  assert.match(messages[0].content, /separate player click/i);
-  assert.match(messages[0].content, /Never propose a loan, purchase, supplier order, week-close/i);
+  assert.match(messages[0].content, /simulation snapshot as the authority/i);
+  assert.match(messages[0].content, /player must still use the game/i);
+  assert.match(messages[0].content, /Never silently execute/i);
+  assert.match(messages[0].content, /purchases, supplier orders, borrowing/i);
+});
+
+test('legacy AI identity and advice-only restriction are replaced by Business Partner management guidance', () => {
+  const messages = makeHarness().api.appendSystemInstruction([
+    { role: 'system', content: 'You are REALWORLD AI, a broadly useful assistant inside a business simulation. You have no tools that can change the game. Never claim you placed orders, hired staff, changed prices, advanced a week, saved data, or changed company finances. You only explain, calculate, and recommend.' },
+    { role: 'user', content: 'Help me. [REALWORLD interface context: current screen is finance. The assistant is advisory only; it cannot change the simulation.]' }
+  ]);
+  assert.doesNotMatch(messages[0].content, /You are REALWORLD AI/i);
+  assert.doesNotMatch(messages[0].content, /You have no tools that can change the game/i);
+  assert.match(messages[0].content, /You may use only the explicit, validated staged-action tools/i);
+  assert.match(messages[0].content, /Do not call yourself an AI/i);
+  assert.match(messages[1].content, /Supported management actions can stage existing native form values/i);
+  assert.doesNotMatch(messages[1].content, /advisory only; it cannot change the simulation/i);
 });

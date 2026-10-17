@@ -1,0 +1,35 @@
+REALWORLD LAYER 12.1 — LOCAL VALIDATION REPORT
+Date: 2026-10-17
+
+Focused provider/client/Worker test command:
+  node --test layer12.test.cjs cloudflare-worker/src/index.test.mjs
+
+RESULT: 22 tests passed, 0 failed, 0 skipped.
+- 15 Layer 12 client/guardrail tests passed.
+- 7 Cloudflare Worker service tests passed.
+
+Additional existing-runtime regression command:
+  node --test layer10.test.cjs
+
+RESULT: 31 tests passed, 0 failed, 0 skipped.
+The bundled Layer 10 runtime was checked against the current repository file's Git blob hash before this test. The replacement bundle deliberately does NOT include that runtime file; keep the repository's accepted layer10.js unchanged.
+
+Syntax checks passed for:
+  layer12.js
+  assistant-config.js
+  cloudflare-worker/src/index.js
+  cloudflare-worker/src/index.test.mjs
+  layer10.test.cjs
+  layer11.test.cjs
+  loader.test.cjs
+  the inline bootstrap extracted from index.html
+
+The full layered/loader workflow has not been run from a fresh checkout inside this packaging environment because the accepted Layer 7–11 runtime and regression files are intentionally not all bundled/replaced here. These focused results are not a claim that the complete GitHub Actions workflow or the live Pages deployment has passed.
+
+NOT VERIFIED HERE:
+- The user's Cloudflare Worker deployment, server secret, rate-limit binding, or a real Gemini API request.
+- Actual shared Gemini quota or provider billing on the owner's project.
+- Live GitHub Pages acceptance after the update is uploaded.
+- Real interactions with the user's saved company.
+
+The endpoint in assistant-config.js is blank by design until the real Worker URL is deployed and wired. Live online answers before that wiring should fail closed; the game itself and local reports should remain available. Run the full GitHub Actions workflow after uploading, configure the Worker, and then run FINAL_ACCEPTANCE_TESTER_PROMPT.txt against the live game.
