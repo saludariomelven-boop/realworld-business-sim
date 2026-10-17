@@ -3,19 +3,25 @@ name: REALWORLD Regression Tests
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - rw-layer12.1-final-update
     paths:
       - 'index.html'
       - 'README.md'
       - 'firebase-config.js'
+      - 'assistant-config.js'
       - 'layer*.js'
       - 'layer*.cjs'
       - 'layer*.test.cjs'
       - 'loader.test.cjs'
       - 'regression.test.cjs'
+      - 'cloudflare-worker/**'
       - '.github/workflows/realworld-regression.yml'
+
   pull_request:
     branches: [main]
+
   workflow_dispatch:
 
 permissions:
@@ -39,7 +45,7 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
-      - name: Run the full layered and loader test suite
+      - name: Run the full layered, loader, and Worker test suite
         run: >-
           node --test
           layer7.test.cjs
@@ -49,35 +55,69 @@ jobs:
           layer11.test.cjs
           layer12.test.cjs
           loader.test.cjs
+          cloudflare-worker/src/index.test.mjs
 
-      - name: Run existing business-engine regressions against the pinned Layer 6.0 source
+      - name: Run business-engine regressions against pinned Layer 6.0 source
         shell: bash
         run: |
           set -euo pipefail
           backup="$(mktemp)"
           cp index.html "$backup"
-          restore() { cp "$backup" index.html; rm -f "$backup"; }
+          restore() {
+            cp "$backup" index.html
+            rm -f "$backup"
+          }
           trap restore EXIT
+
           curl --fail --silent --show-error --location \
             'https://raw.githubusercontent.com/saludariomelven-boop/realworld-business-sim/cca64607926733ee0d1130138606b2753a67dd99/index.html' \
             --output index.html
+
           node --test regression.test.cjs
 
-      - name: Verify all runtime, config, test, and loader JavaScript syntax
+      - name: Verify JavaScript syntax and application bootstrap
         shell: bash
         run: |
           set -euo pipefail
-          for file in firebase-config.js layer7.js layer8.2.js layer9.js layer10.js layer11.js layer12.js \
-            layer7.test.cjs layer8.2.test.cjs layer9.test.cjs layer10.test.cjs \
-            layer11.test.cjs layer12.test.cjs loader.test.cjs regression.test.cjs; do
+
+          for file in \
+            firebase-config.js \
+            assistant-config.js \
+            layer7.js \
+            layer8.2.js \
+            layer9.js \
+            layer10.js \
+            layer11.js \
+            layer12.js \
+            layer7.test.cjs \
+            layer8.2.test.cjs \
+            layer9.test.cjs \
+            layer10.test.cjs \
+            layer11.test.cjs \
+            layer12.test.cjs \
+            loader.test.cjs \
+            regression.test.cjs \
+            cloudflare-worker/src/index.js \
+            cloudflare-worker/src/index.test.mjs; do
             node --check "$file"
           done
+
           node - <<'NODE'
           const fs = require('node:fs');
           const html = fs.readFileSync('index.html', 'utf8');
           const match = html.match(/<script>([\s\S]*?)<\/script>/);
-          if (!match) throw new Error('Expected one bootstrap script in index.html');
-          fs.writeFileSync('/tmp/realworld-layer12-bootstrap.js', match[1]);
+
+          if (!match) {
+            throw new Error(
+              'Expected the application bootstrap script in index.html'
+            );
+          }
+
+          fs.writeFileSync(
+            '/tmp/realworld-layer12-bootstrap.js',
+            match[1]
+          );
           NODE
+
           node --check /tmp/realworld-layer12-bootstrap.js
           
