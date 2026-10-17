@@ -2,6 +2,7 @@
 name = "realworld-company-assistant"
 main = "src/index.js"
 compatibility_date = "2026-10-17"
+preview_urls = true
 
 [vars]
 ALLOWED_ORIGIN = "https://saludariomelven-boop.github.io"
